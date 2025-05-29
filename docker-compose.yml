@@ -1,79 +1,7 @@
 version: '3.8'
 
 services:
-  # Development service with enhanced configuration
-  portfolio-dev:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-      args:
-        - NODE_ENV=development
-    ports:
-      - '3000:3000'
-    volumes:
-      - .:/app:cached
-      - /app/node_modules
-      - /app/dist
-    environment:
-      - NODE_ENV=development
-      - VITE_DEV_TOOLS=true
-      - VITE_SHOW_PERFORMANCE_METRICS=true
-    env_file:
-      - .env
-    networks:
-      - portfolio-network
-    restart: unless-stopped
-    healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3000/']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    profiles:
-      - dev
-    # depends_on:
-    #   - redis
-
-  # Production service with enhanced configuration
-  portfolio-prod:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        - NODE_ENV=production
-    ports:
-      - '8080:8080'
-    environment:
-      - NODE_ENV=production
-      - VITE_BUILD_SOURCEMAP=false
-    env_file:
-      - .env
-    networks:
-      - portfolio-network
-    restart: unless-stopped
-    healthcheck:
-      test:
-        [
-          'CMD',
-          'wget',
-          '--no-verbose',
-          '--tries=1',
-          '--spider',
-          '--timeout=5',
-          'http://localhost:8080/health',
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    profiles:
-      - prod
-    depends_on:
-      - redis
-    security_opt:
-      - no-new-privileges:true
-
-  # Production with custom port and monitoring
+  # Default portfolio service (production-ready)
   portfolio:
     build:
       context: .
@@ -85,6 +13,7 @@ services:
     environment:
       - NODE_ENV=production
       - VITE_BUILD_SOURCEMAP=false
+      - VITE_DEV_TOOLS=false
     env_file:
       - .env
     networks:
@@ -105,8 +34,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-    depends_on:
-      - redis
     security_opt:
       - no-new-privileges:true
     logging:
@@ -115,49 +42,7 @@ services:
         max-size: '10m'
         max-file: '3'
 
-  # Redis for caching and performance optimization
-  redis:
-    image: redis:7-alpine
-    ports:
-      - '6379:6379'
-    volumes:
-      - redis-data:/data
-    networks:
-      - portfolio-network
-    restart: unless-stopped
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
-    healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    security_opt:
-      - no-new-privileges:true
-    profiles:
-      - dev
-      - prod
-
-  # Optional: Redis Commander for Redis management (development only)
-  redis-commander:
-    image: rediscommander/redis-commander:latest
-    ports:
-      - '8081:8081'
-    environment:
-      - REDIS_HOSTS=local:redis:6379
-    networks:
-      - portfolio-network
-    depends_on:
-      - redis
-    profiles:
-      - dev
-    restart: unless-stopped
-
 networks:
   portfolio-network:
     driver: bridge
     name: portfolio-network
-
-volumes:
-  redis-data:
-    driver: local

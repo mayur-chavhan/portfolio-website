@@ -3,7 +3,6 @@ import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 import path from 'path';
-import redis from 'redis';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -13,68 +12,32 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 const NODE_ENV = process.env.NODE_ENV || 'production';
 
-// Redis client setup
-let redisClient = null;
-const REDIS_URL = process.env.REDIS_URL || 'redis://redis:6379';
+// Simple cache middleware (in-memory for basic caching)
+const cache = new Map();
 
-async function initRedis() {
-  try {
-    redisClient = redis.createClient({
-      url: REDIS_URL,
-      socket: {
-        connectTimeout: 5000,
-        lazyConnect: true,
-      },
-      retryDelayOnFailover: 100,
-      maxRetriesPerRequest: 3,
-    });
-
-    redisClient.on('error', err => {
-      console.error('Redis Client Error:', err);
-    });
-
-    redisClient.on('connect', () => {
-      console.log('✅ Redis client connected');
-    });
-
-    await redisClient.connect();
-    console.log('✅ Redis initialized successfully');
-  } catch (error) {
-    console.warn(
-      '⚠️ Redis connection failed, continuing without cache:',
-      error.message
-    );
-    redisClient = null;
-  }
-}
-
-// Cache middleware
 function cacheMiddleware(duration = 300) {
-  return async (req, res, next) => {
-    if (!redisClient || req.method !== 'GET') {
+  return (req, res, next) => {
+    if (req.method !== 'GET') {
       return next();
     }
 
     const key = `cache:${req.originalUrl}`;
+    const cached = cache.get(key);
 
-    try {
-      const cached = await redisClient.get(key);
-      if (cached) {
-        res.setHeader('X-Cache', 'HIT');
-        return res.json(JSON.parse(cached));
-      }
-    } catch (error) {
-      console.error('Cache get error:', error);
+    if (cached && Date.now() - cached.timestamp < duration * 1000) {
+      res.setHeader('X-Cache', 'HIT');
+      return res.json(cached.data);
     }
 
     // Store original json method
     const originalJson = res.json;
     res.json = function (data) {
       // Cache the response
-      if (redisClient && res.statusCode === 200) {
-        redisClient
-          .setEx(key, duration, JSON.stringify(data))
-          .catch(console.error);
+      if (res.statusCode === 200) {
+        cache.set(key, {
+          data,
+          timestamp: Date.now(),
+        });
       }
       res.setHeader('X-Cache', 'MISS');
       return originalJson.call(this, data);
@@ -148,7 +111,7 @@ app.use((req, res, next) => {
 });
 
 // Health check endpoint
-app.get('/health', async (req, res) => {
+app.get('/health', (req, res) => {
   const health = {
     status: 'healthy',
     timestamp: new Date().toISOString(),
@@ -157,30 +120,17 @@ app.get('/health', async (req, res) => {
     version: process.env.npm_package_version || '1.0.0',
     memory: process.memoryUsage(),
     pid: process.pid,
-    services: {
-      redis: 'unknown',
+    cache: {
+      type: 'in-memory',
+      size: cache.size,
     },
   };
 
-  // Check Redis health
-  if (redisClient) {
-    try {
-      await redisClient.ping();
-      health.services.redis = 'healthy';
-    } catch (error) {
-      health.services.redis = 'unhealthy';
-      health.status = 'degraded';
-    }
-  } else {
-    health.services.redis = 'disabled';
-  }
-
-  const statusCode = health.status === 'healthy' ? 200 : 503;
-  res.status(statusCode).json(health);
+  res.status(200).json(health);
 });
 
 // Metrics endpoint for monitoring
-app.get('/metrics', cacheMiddleware(60), async (req, res) => {
+app.get('/metrics', cacheMiddleware(60), (req, res) => {
   const metrics = {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
@@ -190,26 +140,12 @@ app.get('/metrics', cacheMiddleware(60), async (req, res) => {
     platform: process.platform,
     nodeVersion: process.version,
     environment: NODE_ENV,
-    redis: null,
+    cache: {
+      type: 'in-memory',
+      size: cache.size,
+      entries: Array.from(cache.keys()),
+    },
   };
-
-  // Add Redis metrics if available
-  if (redisClient) {
-    try {
-      const info = await redisClient.info('memory');
-      const keyspace = await redisClient.info('keyspace');
-      metrics.redis = {
-        connected: true,
-        memory: info,
-        keyspace: keyspace,
-      };
-    } catch (error) {
-      metrics.redis = {
-        connected: false,
-        error: error.message,
-      };
-    }
-  }
 
   res.status(200).json(metrics);
 });
@@ -254,28 +190,21 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Initialize Redis and start server
-async function startServer() {
-  await initRedis();
-
+// Start server
+function startServer() {
   const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(
       `🚀 Portfolio server running on port ${PORT} in ${NODE_ENV} mode`
     );
     console.log(`📊 Health check available at http://localhost:${PORT}/health`);
     console.log(`📈 Metrics available at http://localhost:${PORT}/metrics`);
-    if (redisClient) {
-      console.log(`🗄️ Redis caching enabled`);
-    }
+    console.log(`💾 In-memory caching enabled`);
   });
 
   // Graceful shutdown
   process.on('SIGTERM', () => {
     console.log('SIGTERM received, shutting down gracefully');
-    server.close(async () => {
-      if (redisClient) {
-        await redisClient.quit();
-      }
+    server.close(() => {
       console.log('Process terminated');
       process.exit(0);
     });
@@ -283,10 +212,7 @@ async function startServer() {
 
   process.on('SIGINT', () => {
     console.log('SIGINT received, shutting down gracefully');
-    server.close(async () => {
-      if (redisClient) {
-        await redisClient.quit();
-      }
+    server.close(() => {
       console.log('Process terminated');
       process.exit(0);
     });
@@ -296,6 +222,6 @@ async function startServer() {
 }
 
 // Start the server
-startServer().catch(console.error);
+startServer();
 
 export default app;

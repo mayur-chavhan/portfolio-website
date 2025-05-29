@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  # Development service with hot reload
+  portfolio-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      args:
+        - NODE_ENV=development
+    ports:
+      - '3000:3000'
+    volumes:
+      # Mount source code for hot reload
+      - .:/app:cached
+      # Prevent overwriting node_modules and dist
+      - /app/node_modules
+      - /app/dist
+    environment:
+      - NODE_ENV=development
+      - VITE_DEV_TOOLS=true
+      - VITE_SHOW_PERFORMANCE_METRICS=true
+      - VITE_BUILD_SOURCEMAP=true
+    env_file:
+      - .env
+    networks:
+      - portfolio-dev-network
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    stdin_open: true
+    tty: true
+
+networks:
+  portfolio-dev-network:
+    driver: bridge
+    name: portfolio-dev-network
