@@ -1,60 +1,88 @@
 import React, { useEffect } from 'react';
-import Navbar from './components/Navbar';
-import HeroSection from './components/HeroSection';
-import AboutSection from './components/AboutSection';
-import SkillsSection from './components/SkillsSection';
-import ProjectsSection from './components/ProjectsSection';
-import ExperienceSection from './components/ExperienceSection';
-import BlogSection from './components/BlogSection';
-import ContactSection from './components/ContactSection';
-import Footer from './components/Footer';
+import {
+  Navbar,
+  HeroSection,
+  AboutSection,
+  SkillsSection,
+  ProjectsSection,
+  ExperienceSection,
+  BlogSection,
+  ContactSection,
+  Footer,
+  DevTools,
+} from '@/features';
+import { ErrorBoundary } from '@/shared/components';
+import { errorTracker, performanceTracker } from '@/shared/utils';
+import { env } from '@/config/env';
 
 function App() {
   useEffect(() => {
+    // Initialize monitoring and error tracking
+    const initializeMonitoring = async () => {
+      try {
+        await errorTracker.initialize();
+        await performanceTracker.initialize();
+
+        // Set user context for error tracking
+        errorTracker.setUserContext('anonymous', {
+          environment: env.NODE_ENV,
+          version: env.APP_VERSION,
+        });
+      } catch (error) {
+        console.error('Failed to initialize monitoring:', error);
+      }
+    };
+
+    initializeMonitoring();
+
     // Update page title
     document.title = 'Mayur Chavhan | DevOps Engineer & Cloud Architect';
-    
+
     // Add schema markup for SEO
     const schemaScript = document.createElement('script');
     schemaScript.type = 'application/ld+json';
     schemaScript.innerHTML = JSON.stringify({
       '@context': 'https://schema.org',
       '@type': 'Person',
-      'name': 'Mayur Chavhan',
-      'url': 'https://mayurchavhan.com',
-      'jobTitle': 'DevOps Engineer & Cloud Architect',
-      'worksFor': {
+      name: 'Mayur Chavhan',
+      url: 'https://mayurchavhan.com',
+      jobTitle: 'DevOps Engineer & Cloud Architect',
+      worksFor: {
         '@type': 'Organization',
-        'name': 'Cloud Solutions Inc.'
+        name: 'Cloud Solutions Inc.',
       },
-      'sameAs': [
-        'https://github.com/mayurchavhan',
-        'https://linkedin.com/in/mayurchavhan',
-        'https://twitter.com/mayurchavhan'
-      ],
-      'description': 'DevOps Engineer and Cloud Architect specializing in AWS, Kubernetes, and Automation.'
+      sameAs: [env.GITHUB_URL, env.LINKEDIN_URL, env.TWITTER_URL],
+      description: env.APP_DESCRIPTION,
     });
     document.head.appendChild(schemaScript);
 
     return () => {
-      document.head.removeChild(schemaScript);
+      // Cleanup
+      if (document.head.contains(schemaScript)) {
+        document.head.removeChild(schemaScript);
+      }
     };
   }, []);
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Navbar />
-      <main className="flex-grow">
-        <HeroSection />
-        <AboutSection />
-        <SkillsSection />
-        <ProjectsSection />
-        <ExperienceSection />
-        <BlogSection />
-        <ContactSection />
-      </main>
-      <Footer />
-    </div>
+    <ErrorBoundary>
+      <div className="flex min-h-screen flex-col">
+        <Navbar />
+        <main className="flex-grow">
+          <HeroSection />
+          <AboutSection />
+          <SkillsSection />
+          <ProjectsSection />
+          <ExperienceSection />
+          <BlogSection />
+          <ContactSection />
+        </main>
+        <Footer />
+
+        {/* Development Tools */}
+        <DevTools />
+      </div>
+    </ErrorBoundary>
   );
 }
 
