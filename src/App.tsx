@@ -1,19 +1,19 @@
-import React, { useEffect } from 'react';
+import { env } from '@/config/env';
 import {
-  Navbar,
-  HeroSection,
   AboutSection,
-  SkillsSection,
-  ProjectsSection,
-  ExperienceSection,
   BlogSection,
   ContactSection,
-  Footer,
   DevTools,
+  ExperienceSection,
+  Footer,
+  HeroSection,
+  Navbar,
+  ProjectsSection,
+  SkillsSection,
 } from '@/features';
 import { ErrorBoundary } from '@/shared/components';
 import { errorTracker, performanceTracker } from '@/shared/utils';
-import { env } from '@/config/env';
+import { useEffect } from 'react';
 
 function App() {
   useEffect(() => {

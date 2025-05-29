@@ -1,7 +1,6 @@
 import { env } from '@/config/env';
 import { errorTracker } from '@/shared/utils/errorTracking';
 import { performanceTracker } from '@/shared/utils/performance';
-import { cache } from '@/shared/utils/redis';
 import {
   Activity,
   AlertTriangle,
@@ -57,9 +56,8 @@ const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({
       const errData = errorTracker.getErrorStats();
       setErrorData(errData);
 
-      // Get cache stats
-      const cacheData = await cache.getStats();
-      setCacheStats(cacheData);
+      // Set cache stats to null since Redis is not available
+      setCacheStats(null);
     } catch (error) {
       console.error('Failed to fetch monitoring data:', error);
     }

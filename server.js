@@ -1,9 +1,13 @@
-const express = require('express');
-const path = require('path');
-const compression = require('compression');
-const helmet = require('helmet');
-const cors = require('cors');
-const redis = require('redis');
+import compression from 'compression';
+import cors from 'cors';
+import express from 'express';
+import helmet from 'helmet';
+import path from 'path';
+import redis from 'redis';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -294,4 +298,4 @@ async function startServer() {
 // Start the server
 startServer().catch(console.error);
 
-module.exports = app;
+export default app;

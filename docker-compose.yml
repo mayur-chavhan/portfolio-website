@@ -31,8 +31,8 @@ services:
       start_period: 60s
     profiles:
       - dev
-    depends_on:
-      - redis
+    # depends_on:
+    #   - redis
 
   # Production service with enhanced configuration
   portfolio-prod:

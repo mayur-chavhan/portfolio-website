@@ -12,6 +12,7 @@ export const blogPosts: BlogPost[] = [
     date: 'Apr 10, 2023',
     readTime: '8 min read',
     category: 'Kubernetes',
+    tags: ['Kubernetes', 'DevOps', 'Production', 'Best Practices'],
   },
   {
     id: 2,
@@ -24,6 +25,7 @@ export const blogPosts: BlogPost[] = [
     date: 'Mar 15, 2023',
     readTime: '10 min read',
     category: 'Infrastructure as Code',
+    tags: ['Terraform', 'IaC', 'Modules', 'AWS'],
   },
   {
     id: 3,
@@ -36,6 +38,7 @@ export const blogPosts: BlogPost[] = [
     date: 'Feb 28, 2023',
     readTime: '12 min read',
     category: 'DevOps',
+    tags: ['GitOps', 'ArgoCD', 'Kubernetes', 'CI/CD'],
   },
   {
     id: 4,
@@ -48,5 +51,6 @@ export const blogPosts: BlogPost[] = [
     date: 'Jan 20, 2023',
     readTime: '7 min read',
     category: 'Cloud',
+    tags: ['AWS', 'Cost Optimization', 'Cloud', 'FinOps'],
   },
 ];

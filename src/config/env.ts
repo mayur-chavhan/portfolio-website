@@ -52,11 +52,10 @@ interface EnvironmentConfig {
   CDN_URL?: string;
   ASSETS_CDN_URL?: string;
 
-  // Redis
-  REDIS_URL: string;
-  REDIS_PASSWORD?: string;
-  REDIS_DB: number;
-  REDIS_TTL_DEFAULT: number;
+  // Computed properties
+  isProduction: boolean;
+  isDevelopment: boolean;
+  isTest: boolean;
 }
 
 /**
@@ -174,11 +173,16 @@ export const env: EnvironmentConfig = {
   CDN_URL: getEnvVar('CDN_URL'),
   ASSETS_CDN_URL: getEnvVar('ASSETS_CDN_URL'),
 
-  // Redis
-  REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379',
-  REDIS_PASSWORD: process.env.REDIS_PASSWORD,
-  REDIS_DB: parseNumber(process.env.REDIS_DB, 0),
-  REDIS_TTL_DEFAULT: parseNumber(process.env.REDIS_TTL_DEFAULT, 1800),
+  // Computed properties
+  get isProduction() {
+    return this.NODE_ENV === 'production';
+  },
+  get isDevelopment() {
+    return this.NODE_ENV === 'development';
+  },
+  get isTest() {
+    return this.NODE_ENV === 'test';
+  },
 };
 
 /**

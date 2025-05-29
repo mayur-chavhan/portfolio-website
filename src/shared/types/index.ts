@@ -44,6 +44,7 @@ export interface BlogPost {
   date: string;
   readTime: string;
   category: string;
+  tags: string[];
 }
 
 export interface SocialLink {

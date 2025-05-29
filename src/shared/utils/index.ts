@@ -227,4 +227,3 @@ export const sleep = (ms: number): Promise<void> => {
 export * from './errorTracking';
 export * from './logger';
 export * from './performance';
-export * from './redis';
