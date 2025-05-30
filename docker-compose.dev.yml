@@ -8,14 +8,20 @@ services:
       dockerfile: Dockerfile.dev
       args:
         - NODE_ENV=development
+        - USER_ID=${USER_ID:-1001}
+        - GROUP_ID=${GROUP_ID:-1001}
     ports:
       - '3000:3000'
     volumes:
-      # Mount source code for hot reload
+      # Mount source code for hot reload with proper permissions
       - .:/app:cached
-      # Prevent overwriting node_modules and dist
-      - /app/node_modules
-      - /app/dist
+      # Use named volumes for node_modules and cache directories to avoid permission issues
+      - portfolio_dev_node_modules:/app/node_modules
+      - portfolio_dev_vite_cache:/app/.vite
+      - portfolio_dev_dist:/app/dist
+      # Mount package files separately to ensure they're always available
+      - ./package.json:/app/package.json:ro
+      - ./package-lock.json:/app/package-lock.json:ro
     environment:
       - NODE_ENV=development
       - VITE_DEV_TOOLS=true
@@ -39,3 +45,11 @@ networks:
   portfolio-dev-network:
     driver: bridge
     name: portfolio-dev-network
+
+volumes:
+  portfolio_dev_node_modules:
+    driver: local
+  portfolio_dev_vite_cache:
+    driver: local
+  portfolio_dev_dist:
+    driver: local

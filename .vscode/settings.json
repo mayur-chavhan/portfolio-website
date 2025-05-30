@@ -37,5 +37,8 @@
   "eslint.workingDirectories": ["."],
   "eslint.options": {
     "configFile": "./config/eslint.config.js"
+  },
+  "[dockerfile]": {
+    "editor.defaultFormatter": "ms-azuretools.vscode-containers"
   }
 }

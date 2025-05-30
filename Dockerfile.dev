@@ -10,18 +10,29 @@ RUN apk update && apk upgrade && \
     apk add --no-cache \
     git \
     curl \
-    wget && \
+    wget \
+    sudo && \
     rm -rf /var/cache/apk/*
 
-# Create non-root user for development
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001 -G nodejs
+# Accept build arguments for user/group IDs
+ARG USER_ID=1001
+ARG GROUP_ID=1001
+
+# Create group and user with dynamic IDs, handling conflicts gracefully
+RUN (addgroup -g ${GROUP_ID} -S nodejs 2>/dev/null || addgroup -S nodejs) && \
+    (adduser -S nextjs -u ${USER_ID} -G nodejs 2>/dev/null || adduser -S nextjs -G nodejs)
+
+# Note: Running as non-root user for security
 
 # Set working directory
 WORKDIR /app
 
 # Change ownership of the working directory
 RUN chown -R nextjs:nodejs /app
+
+# Create entrypoint script for permission handling
+COPY --chown=nextjs:nodejs docker-entrypoint-dev.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint-dev.sh
 
 # Switch to non-root user
 USER nextjs
@@ -40,5 +51,6 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:3000/ || exit 1
 
-# Start development server with hot reload
+# Use entrypoint script to handle permissions and start dev server
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint-dev.sh"]
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
